@@ -2,3 +2,8 @@
 .venv
 *.jpeg
 *.jpg
+__pycache__/
+eval/outputs/
+node_modules/
+package.json
+package-lock.json

@@ -1,0 +1,11 @@
+{
+  "receipt": {
+    "merchant_name": "",
+    "merchant_address": "",
+    "transaction_date": "",
+    "total": "",
+    "currency": "",
+    "payment_method": "",
+    "card_last4": ""
+  }
+}
