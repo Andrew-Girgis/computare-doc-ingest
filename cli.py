@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from eval.run_eval import run_eval
@@ -23,9 +24,9 @@ def _write_output(text: str, output_path: str | None) -> None:
 
 def run_command(args: argparse.Namespace) -> None:
     if args.method == "one_step":
-        text = run_one_step(args.input, args.task)
+        text = run_one_step(args.input, args.task, device=args.device)
     elif args.method == "two_step":
-        text = run_two_step(args.input, args.task)
+        text = run_two_step(args.input, args.task, device=args.device)
     else:
         raise ValueError(f"Unknown method: {args.method}")
 
@@ -46,6 +47,12 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--input", required=True, help="Path to input document")
     run_parser.add_argument("--task", required=True, help="Task name (e.g., receipt, bank_stmt)")
     run_parser.add_argument("--output", help="Write output JSON to a file")
+    run_parser.add_argument(
+        "--device",
+        default=os.getenv("GLM_OCR_DEVICE", "auto"),
+        choices=["auto", "cpu", "mps"],
+        help="Device for model loading (auto, cpu, mps).",
+    )
     run_parser.set_defaults(func=run_command)
 
     eval_parser = subparsers.add_parser("eval", help="Evaluate pipelines on a dataset")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import torch
@@ -12,12 +13,31 @@ from prompts.glm_ocr_prompts import build_prompt
 MODEL_PATH = "zai-org/GLM-OCR"
 
 
-def run(input_path: str, task: str, *, max_new_tokens: int = 1024) -> str:
-    image_path = Path(input_path).expanduser().resolve()
-    if not image_path.exists():
-        raise FileNotFoundError(f"Input not found: {image_path}")
+def _resolve_device(device: str) -> tuple[str, torch.dtype | str]:
+    value = device.strip().lower()
+    if value == "cpu":
+        return "cpu", torch.float32
+    if value == "mps":
+        return "mps", "auto"
+    return "auto", "auto"
 
-    prompt = build_prompt(task)
+
+def load_model(device: str = "auto"):
+    """Load the GLM-OCR processor and model (expensive, call once)."""
+    processor = AutoProcessor.from_pretrained(MODEL_PATH, trust_remote_code=True)
+    device_map, torch_dtype = _resolve_device(device)
+    model = AutoModelForImageTextToText.from_pretrained(
+        pretrained_model_name_or_path=MODEL_PATH,
+        torch_dtype=torch_dtype,
+        device_map=device_map,
+        low_cpu_mem_usage=True,
+        trust_remote_code=True,
+    )
+    return processor, model
+
+
+def generate(processor, model, image_path: Path, prompt: str, *, max_new_tokens: int = 1024) -> str:
+    """Run a single inference pass on an image with the given prompt."""
     messages = [
         {
             "role": "user",
@@ -27,15 +47,6 @@ def run(input_path: str, task: str, *, max_new_tokens: int = 1024) -> str:
             ],
         }
     ]
-
-    processor = AutoProcessor.from_pretrained(MODEL_PATH, trust_remote_code=True)
-    model = AutoModelForImageTextToText.from_pretrained(
-        pretrained_model_name_or_path=MODEL_PATH,
-        torch_dtype="auto",
-        device_map="auto",
-        trust_remote_code=True,
-    )
-
     inputs = processor.apply_chat_template(
         messages,
         tokenize=True,
@@ -51,6 +62,22 @@ def run(input_path: str, task: str, *, max_new_tokens: int = 1024) -> str:
         skip_special_tokens=True,
     )
     return output_text.strip()
+
+
+def run(
+    input_path: str,
+    task: str,
+    *,
+    max_new_tokens: int = 1024,
+    device: str = "auto",
+) -> str:
+    image_path = Path(input_path).expanduser().resolve()
+    if not image_path.exists():
+        raise FileNotFoundError(f"Input not found: {image_path}")
+
+    processor, model = load_model(device)
+    prompt = build_prompt(task)
+    return generate(processor, model, image_path, prompt, max_new_tokens=max_new_tokens)
 
 
 if __name__ == "__main__":

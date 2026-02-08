@@ -3,8 +3,14 @@
     "merchant_name": "",
     "merchant_address": "",
     "transaction_date": "",
-    "total": "",
     "currency": "",
+    "items": [
+      {
+        "description": "",
+        "amount": ""
+      }
+    ],
+    "total": "",
     "payment_method": "",
     "card_last4": ""
   }
